@@ -7,9 +7,12 @@
 #include <time.h>    /* time_t, struct tm, difftime, time, mktime */
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/stat.h>
+#include <ctype.h>  // for isspace()
 
 #define BUFFER_SIZE 256
 #define MAX_SAMPLE_SIZE 128
+#define FIFO_NAME "/home/budgettsfrog/presence_data.fifo"
 
 // Function to open a serial port
 int open_port(char *port) {
@@ -47,6 +50,19 @@ int configure_port(int fd) {
     return fd;
 }
 
+// Function to strip whitespace from a string and modify it in-place
+void strip_whitespace(char *str) {
+    char *p1 = str, *p2 = str;
+    while (*p1 != 0) {
+        if (!isspace(*p1)) {
+            *p2++ = *p1;
+        }
+        p1++;
+    }
+    *p2 = 0;
+}
+
+// Function to parse a buffer of samples handle invalid data and write valid data to a FIFO
 void parse_buffer(char *buffer) {
     static char leftover[MAX_SAMPLE_SIZE];
     char sample[MAX_SAMPLE_SIZE];
@@ -61,7 +77,6 @@ void parse_buffer(char *buffer) {
         sample[sizeof(sample) - 1] = '\0';  // Ensure null-termination
 
         timestamp = time(NULL);
-        printf("Timestamp: %ld - Received Data: %s\n", timestamp, sample);
 
         // Parse sample
         // Assuming the data format is: <field1>,<field2>=<distance>
@@ -70,11 +85,33 @@ void parse_buffer(char *buffer) {
         char *distance = strtok(NULL, "=");
 
         if (field1 != NULL && field2 != NULL && distance != NULL) {
-            printf("Field1: %s\n", field1);
-            printf("Field2: %s\n", field2);
-            printf("Distance: %s\n", distance);
-        } else {
-            printf("Invalid data received\n");
+            // Strip any whitespace from the fields
+            strip_whitespace(field1);
+            strip_whitespace(field2);
+            strip_whitespace(distance);
+
+            //printf("Field1: %s\n", field1);
+            //printf("Field2: %s\n", field2);
+            //printf("Distance: %s\n", distance);
+
+            // Parse a little further. Field1 is always going to be "occ" or "mov", if it's not, we have a bad sample
+            // Field2 is always going to be "dis", if it's not, we have a bad sample
+            // Distance is always going to be a decimal number in the format of X.XX, if it's not, we have a bad sample
+            bool sample_valid = true;
+            if ( (strcmp(field1, "occ") != 0 && strcmp(field1, "mov") != 0) || (strcmp(field2, "dis") != 0) || (strlen(distance) != 4) )  {
+                sample_valid = false;
+            }
+
+            if(sample_valid) {
+                FILE *fifo = fopen(FIFO_NAME, "w");
+                if (fifo == NULL) {
+                    fprintf(stderr, "Failed to open FIFO %s for writing\n", FIFO_NAME);
+                } else {
+                    // Write the parsed data to the FIFO in JSON format
+                    fprintf(fifo, "{\"timestamp\": %ld, \"field1\": \"%s\", \"field2\": \"%s\", \"distance\": \"%s\"}\n", timestamp, field1, field2, distance);
+                    fclose(fifo);
+                }
+            }
         }
 
         start = end + 1;  // Next sample starts after the newline
@@ -95,7 +132,6 @@ int main(int argc, char *argv[]) {
     }
 
     char *port = argv[1];
-
     int fd, n;
     char buffer[BUFFER_SIZE];
     char input;
@@ -104,6 +140,13 @@ int main(int argc, char *argv[]) {
     int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
     fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 
+    // Create a named pipe (FIFO) if it doesn't exist yet
+    if (mkfifo(FIFO_NAME, 0666) == -1) {
+        if (errno != EEXIST) {
+            printf("Failed to create FIFO. %s\n", strerror(errno));
+            return 1;
+        }
+    }
 
     printf("Checking port %s\n", port);
     fd = open_port(port);
@@ -115,10 +158,7 @@ int main(int argc, char *argv[]) {
 
             if (n > 0) {
                 parse_buffer(buffer);
-                //printf("%s", buffer);
                 memset(buffer, 0, sizeof(buffer));
-            } else {
-                //printf("No data received on port %s\n", port);
             }
 
             // Sleep for 10 ms
@@ -136,6 +176,7 @@ int main(int argc, char *argv[]) {
         }
 
         close(fd);
+        unlink(FIFO_NAME);
     }
 
     return 0;
