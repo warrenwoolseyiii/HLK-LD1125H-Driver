@@ -22,16 +22,18 @@ fun main() {
     val pipeFile = File(Settings.PIPE_PATH)
 
     val readerThread = Thread {
-        while(pipeFile.exists()) {
+        var someoneIsPresent = false
+        while(pipeFile.exists() && isServiceRunning()) {
             pipeFile.bufferedReader().useLines { lines ->
                 lines.forEach { line ->
                     val json = line.toJSONObject()
                     val distance = json.getDouble("distance")
-                    println("Distance: $distance")
-                    if (distance != null && distance < Settings.THRESHOLD) {
+                    if (distance != null && distance < Settings.THRESHOLD && !someoneIsPresent) {
                         println("Someone is present")
-                    } else {
+                        someoneIsPresent = true
+                    } else if (distance != null && distance >= Settings.THRESHOLD && someoneIsPresent) {
                         println("No one is present")
+                        someoneIsPresent = false
                     }
                 }
             }
