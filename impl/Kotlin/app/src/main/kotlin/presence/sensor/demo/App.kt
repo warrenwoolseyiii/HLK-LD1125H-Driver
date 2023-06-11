@@ -12,7 +12,8 @@ fun JsonObject.getDouble(key: String) = this[key]?.jsonPrimitive?.doubleOrNull
 
 fun main() {
     if (!isServiceRunning()) {
-        if (!startService()) {
+        println("Service is not running. Attempting to start it.")
+        if (!startService() || !isServiceRunning()) {
             println("Failed to start the service. Exiting.")
             return
         }
@@ -24,15 +25,14 @@ fun main() {
         while(pipeFile.exists()) {
             pipeFile.bufferedReader().useLines { lines ->
                 lines.forEach { line ->
-                    /*val json = line.toJSONObject()
-                    val distance = json.getDouble("dist")
+                    val json = line.toJSONObject()
+                    val distance = json.getDouble("distance")
+                    println("Distance: $distance")
                     if (distance != null && distance < Settings.THRESHOLD) {
                         println("Someone is present")
                     } else {
                         println("No one is present")
-                    }*/
-                    // Just print the raw line
-                    println(line)
+                    }
                 }
             }
             Thread.sleep(10)
