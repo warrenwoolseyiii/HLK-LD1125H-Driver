@@ -9,10 +9,19 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <ctype.h>  // for isspace()
+#include <signal.h> // Needed for the signal handling functions
 
 #define BUFFER_SIZE 256
 #define MAX_SAMPLE_SIZE 128
-#define FIFO_NAME "/home/budgettsfrog/presence_data.fifo"
+
+volatile sig_atomic_t terminate = 0;
+
+// Handler for the SIGTERM signal
+void signal_handler(int signal) {
+    if (signal == SIGTERM) {
+        terminate = 1;
+    }
+}
 
 // Function to open a serial port
 int open_port(char *port) {
@@ -63,7 +72,7 @@ void strip_whitespace(char *str) {
 }
 
 // Function to parse a buffer of samples handle invalid data and write valid data to a FIFO
-void parse_buffer(char *buffer) {
+void parse_buffer(char *buffer, char *fifo_name) {
     static char leftover[MAX_SAMPLE_SIZE];
     char sample[MAX_SAMPLE_SIZE];
     char *start, *end;
@@ -103,9 +112,9 @@ void parse_buffer(char *buffer) {
             }
 
             if(sample_valid) {
-                FILE *fifo = fopen(FIFO_NAME, "w");
+                FILE *fifo = fopen(fifo_name, "w");
                 if (fifo == NULL) {
-                    fprintf(stderr, "Failed to open FIFO %s for writing\n", FIFO_NAME);
+                    fprintf(stderr, "Failed to open FIFO %s for writing\n", fifo_name);
                 } else {
                     // Write the parsed data to the FIFO in JSON format
                     fprintf(fifo, "{\"timestamp\": %ld, \"field1\": \"%s\", \"field2\": \"%s\", \"distance\": \"%s\"}\n", timestamp, field1, field2, distance);
@@ -126,12 +135,17 @@ void parse_buffer(char *buffer) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <serial_port>\n", argv[0]);
+
+    signal(SIGTERM, signal_handler);
+
+    // Check for 3 arguments
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <serial_port> <fifo_name>\n", argv[0]);
         return 1;
     }
 
     char *port = argv[1];
+    char *fifo_name = argv[2];
     int fd, n;
     char buffer[BUFFER_SIZE];
     char input;
@@ -141,7 +155,7 @@ int main(int argc, char *argv[]) {
     fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 
     // Create a named pipe (FIFO) if it doesn't exist yet
-    if (mkfifo(FIFO_NAME, 0666) == -1) {
+    if (mkfifo(fifo_name, 0666) == -1) {
         if (errno != EEXIST) {
             printf("Failed to create FIFO. %s\n", strerror(errno));
             return 1;
@@ -157,26 +171,22 @@ int main(int argc, char *argv[]) {
             n = read(fd, buffer, BUFFER_SIZE);
 
             if (n > 0) {
-                parse_buffer(buffer);
+                parse_buffer(buffer, fifo_name);
                 memset(buffer, 0, sizeof(buffer));
             }
 
             // Sleep for 10 ms
             usleep(10000);
 
-            if(read(STDIN_FILENO, &input, 1) < 0) {
-                // No input, continue doing something else
-                continue;
-            }
-            
-            // If user enters 'X' or 'x', break the loop
-            if(input == 'X' || input == 'x') {
+            // Check if the terminate signal has been set
+            if (terminate) {
+                printf("Received termination signal, ending program.\n");
                 break;
             }
         }
 
         close(fd);
-        unlink(FIFO_NAME);
+        unlink(fifo_name);
     }
 
     return 0;
