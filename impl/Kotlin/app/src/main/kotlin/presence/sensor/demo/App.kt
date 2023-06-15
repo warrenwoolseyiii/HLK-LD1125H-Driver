@@ -84,7 +84,7 @@ fun isServiceRunning(): Boolean {
 }
 
 fun startService(): Boolean {
-    val cmd = "${Settings.SERVICE_PATH} ${Settings.PORT_NAME} &"
+    val cmd = "${Settings.SERVICE_PATH} ${Settings.PORT_NAME} ${Settings.PIPE_PATH} &"
     println("Starting service with command: $cmd")
     Runtime.getRuntime().exec(cmd)
     println("Waiting for service to start...")
