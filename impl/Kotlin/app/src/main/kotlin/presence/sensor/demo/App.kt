@@ -8,7 +8,9 @@ import java.util.concurrent.TimeUnit
 import java.util.Scanner
 import java.util.Queue
 import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicBoolean
 
+val running = AtomicBoolean(true)
 
 class SampleQueue(private val size: Int) {
     private val queue: Queue<Double> = LinkedList<Double>()
@@ -38,11 +40,15 @@ fun main() {
     val pipeFile = File(Settings.PIPE_PATH)
 
     val readerThread = Thread {
+        println("Starting reader thread...")
         val sampleQueue = SampleQueue(10) // change the number to your desired window size
         var someoneIsPresent = false
-        while(pipeFile.exists()) {
+        while(running.get() && pipeFile.exists()) {
             pipeFile.bufferedReader().useLines { lines ->
                 lines.forEach { line ->
+                    if(Thread.currentThread().isInterrupted) {
+                        return@Thread
+                    }
                     val json = line.toJSONObject()
                     val distance = json.getDouble("distance")
                     if (distance != null) {
@@ -64,16 +70,15 @@ fun main() {
 
     readerThread.start()
 
-    val scanner = Scanner(System.`in`)
-    while (scanner.hasNextLine()) {
-        val line = scanner.nextLine()
-        if (line.equals("X", true)) {
-            readerThread.interrupt()
-            break
-        }
-    }
+    Runtime.getRuntime().addShutdownHook(Thread {
+        running.set(false)
+        readerThread.interrupt()
+        println("Received SIGTERM, ending program...")
+    })
 
-    scanner.close()
+    while(running.get()) {
+        Thread.sleep(1000)
+    }
 }
 
 fun isServiceRunning(): Boolean {
