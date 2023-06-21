@@ -29,7 +29,7 @@ jobs:
 
       - name: Release All
         run: |
-          version="$(./utilities/version/get_version.sh)"
+          version="$(./version/get_version.sh)"
           gh release create "$version" bin.tar.gz --title "$version" --generate-notes --repo https://github.com/warrenwoolseyiii/HLK-LD1125H-Driver --target ci
         shell: bash
         env:
