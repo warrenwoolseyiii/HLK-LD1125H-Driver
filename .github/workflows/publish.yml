@@ -24,8 +24,13 @@ jobs:
 
       - name: Package Binaries
         run: |
-          rm impl/C/build/*.o
-          tar -czvf bin.tar.gz impl/C/build/*
+          rm *.o
+          tar -czvf bin.tar.gz *
+        working-directory: impl/C/build
+
+      - name: Copy Binaries
+        run: |
+          cp impl/C/build/bin.tar.gz .
 
       - name: Release All
         run: |
