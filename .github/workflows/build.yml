@@ -10,11 +10,14 @@ permissions:
   contents: read
 
 jobs:
-  Build-Test-Comms:
+  Build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Install deps
+        run: |
+          apt install gcc-aarch64-linux-gnu
 
       - name: Make
         run: |
