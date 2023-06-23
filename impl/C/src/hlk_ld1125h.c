@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <ctype.h>  // for isspace()
 #include <signal.h> // Needed for the signal handling functions
+#include "version.h"
 
 #define BUFFER_SIZE 256
 #define MAX_SAMPLE_SIZE 128
@@ -143,6 +144,9 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: %s <serial_port> <fifo_name>\n", argv[0]);
         return 1;
     }
+
+    // Print the version outloud
+    printf("HLK-LD1125H driver service version %d.%d.%d\n", VERSION_MAJOR, VERSION_MINOR, VERSION_REV);
 
     char *port = argv[1];
     char *fifo_name = argv[2];

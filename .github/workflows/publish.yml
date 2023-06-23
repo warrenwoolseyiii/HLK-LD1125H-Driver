@@ -1,0 +1,41 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  Publish:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install deps
+        run: |
+          sudo apt install gcc-aarch64-linux-gnu
+
+      - name: Make
+        run: |
+          make clean
+          make
+        working-directory: impl/C
+
+      - name: Package Binaries
+        run: |
+          rm *.o
+          tar -czvf bin.tar.gz *
+        working-directory: impl/C/build
+
+      - name: Copy Binaries
+        run: |
+          cp impl/C/build/bin.tar.gz .
+
+      - name: Release All
+        run: |
+          version="$(./version/get_version.sh)"
+          gh release create "$version" bin.tar.gz --title "$version" --generate-notes --repo https://github.com/warrenwoolseyiii/HLK-LD1125H-Driver --target main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}

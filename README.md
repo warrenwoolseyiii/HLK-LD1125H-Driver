@@ -1,11 +1,23 @@
 # HLK-LD1125H-Driver
-This project provides a software interface for the HLK-LD1125H presence sensor, a hardware component meant to detect human presence in a certain area.
+This project provides a software interface for the HLK-LD1125H presence sensor, a hardware component meant to detect human presence in a certain area. You can read about the various aspects of the project below, if you don't care to do that feel free to download the latest release binaries from the GitHub release page in the repo. You wil find an amd64, and arm64 build. If you need to the project build to different specifications, simply build it from the source.
+
+## Quick Start
+1. Download the release binaries from the GitHub release page.
+2. Run the program using the correct binary for your distribution:
+```sh
+./hlk_ld1125h-amd64-0.0.5 /dev/ttyS0 /path/to/presence_data.fifo  # replace /dev/ttyS0 and /path/to/presence_data.fifo with the actual serial port of the sensor and desired path to the FIFO
+```
+3. Open another terminal and access the data from the pipe:
+```sh
+cat /path/to/your.fifo  # replace /path/to/your.fifo with the actual path to the FIFO
+```
 
 ## Project Structure
 The project is structured as follows:
 - **root directory**: The top-level directory of the project.
   - **impl**: Contains various implementations of the project. Currently, there are implementations in C and Kotlin.
   - **docs**: Contains any data sheets or other relevant information about the part.
+  - **version**: Contains useful scripts and other utilities for auto incrementing the version.
 
 ## C Implementation
 The C implementation designs a Linux service that runs in the background, accessible by other implementations for extracting sensor data.
@@ -30,7 +42,7 @@ make
 
 # the compiled output, named 'hlk_ld1125h', will be inside the 'build' directory
 # to run the service, navigate to the 'build' directory and execute the following command:
-./hlk_ld1125h /dev/ttyS0 /path/to/presence_data.fifo  # replace /dev/ttyS0 and /path/to/presence_data.fifo with the actual serial port of the sensor and desired path to the FIFO
+./hlk_ld1125h-amd64-0.0.5 /dev/ttyS0 /path/to/presence_data.fifo  # replace /dev/ttyS0 and /path/to/presence_data.fifo with the actual serial port of the sensor and desired path to the FIFO
 ```
 Please ensure that the correct serial port name and path to the FIFO are provided as command-line arguments when starting the service.
 
