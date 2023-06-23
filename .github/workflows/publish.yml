@@ -35,7 +35,7 @@ jobs:
       - name: Release All
         run: |
           version="$(./version/get_version.sh)"
-          gh release create "$version" bin.tar.gz --title "$version" --generate-notes --repo https://github.com/warrenwoolseyiii/HLK-LD1125H-Driver --target ci
+          gh release create "$version" bin.tar.gz --title "$version" --generate-notes --repo https://github.com/warrenwoolseyiii/HLK-LD1125H-Driver --target main
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
