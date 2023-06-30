@@ -1,13 +1,13 @@
 package presence.sensor.demo
 
-import kotlinx.serialization.json.*
-import java.io.BufferedReader
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
 import java.io.File
-import java.io.InputStreamReader
+import java.util.*
 import java.util.concurrent.TimeUnit
-import java.util.Scanner
-import java.util.Queue
-import java.util.LinkedList
 import java.util.concurrent.atomic.AtomicBoolean
 
 val running = AtomicBoolean(true)
