@@ -29,3 +29,20 @@ $(OBJDIR):
 
 clean:
 	rm -f $(OBJDIR)/*
+
+.PHONY: install
+
+install: all
+	@echo "Installing..."
+	@if [ -f /usr/local/bin/hlk_ld1125h-amd64-* ]; then \
+		echo "Removing existing version..."; \
+		rm /usr/local/bin/hlk_ld1125h-amd64-*; \
+	fi
+	@if [ -f /usr/local/bin/hlk_ld1125h-arm64-* ]; then \
+		echo "Removing existing version..."; \
+		rm /usr/local/bin/hlk_ld1125h-arm64-*; \
+	fi
+	cp $(OBJDIR)/hlk_ld1125h-amd64-$(VERSION) /usr/local/bin/
+	cp $(OBJDIR)/hlk_ld1125h-arm64-$(VERSION) /usr/local/bin/
+	@echo "Installation done!"
+
