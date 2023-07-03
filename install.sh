@@ -23,4 +23,4 @@ make
 make install
 
 # Change back to the original working directory
-cd $ORIGINAL_DIR
+cd "$ORIGINAL_DIR"
